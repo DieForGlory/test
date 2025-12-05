@@ -1,0 +1,242 @@
+import React, { useEffect, useState } from 'react';
+import { FilterSidebar } from '../components/FilterSidebar';
+import { ProductCard } from '../components/ProductCard';
+import { SlidersHorizontalIcon, XIcon, GridIcon, ListIcon } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { publicApi } from '../services/publicApi';
+import { useSettings } from '../contexts/SettingsContext';
+
+interface Product {
+  id: string;
+  name: string;
+  collection: string;
+  price: number;
+  image: string;
+}
+
+export function Catalog() {
+  const { currency } = useSettings();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 12,
+    total: 0,
+    totalPages: 0
+  });
+  const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortBy, setSortBy] = useState('popular');
+
+  // Get filters from URL
+  const filters = {
+    collection: searchParams.get('collection') || '',
+    search: searchParams.get('search') || '',
+    minPrice: searchParams.get('minPrice') ? parseInt(searchParams.get('minPrice')!) : undefined,
+    maxPrice: searchParams.get('maxPrice') ? parseInt(searchParams.get('maxPrice')!) : undefined,
+    page: searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1
+  };
+
+  // Обновляем список товаров при изменении фильтров ИЛИ сортировки
+  useEffect(() => {
+    fetchProducts();
+  }, [searchParams, sortBy]);
+
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      // Передаем параметр sort на бэкенд
+      const response = await publicApi.getProducts({
+        ...filters,
+        sort: sortBy,
+        limit: pagination.limit
+      });
+      setProducts(response.data);
+      setPagination(response.pagination);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    searchParams.set('page', page.toString());
+    setSearchParams(searchParams);
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
+  const clearFilters = () => {
+    setSearchParams({});
+  };
+
+  const removeFilter = (key: string) => {
+    searchParams.delete(key);
+    setSearchParams(searchParams);
+  };
+
+  const activeFilters = Array.from(searchParams.entries()).filter(([key]) => key !== 'page' && key !== 'limit');
+
+  return (
+    <div className="w-full bg-white">
+      {/* Hero Section */}
+      <section className="relative bg-black text-white py-16 sm:py-24 overflow-hidden">
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-1/3 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white to-transparent"></div>
+          <div className="absolute top-2/3 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white to-transparent"></div>
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 lg:px-16">
+          <div className="flex items-center space-x-2 sm:space-x-3 text-[10px] sm:text-xs tracking-[0.1em] sm:tracking-[0.15em] text-white/50 font-medium mb-8 sm:mb-12">
+            <Link to="/" className="hover:text-white transition-colors">
+              ГЛАВНАЯ
+            </Link>
+            <span>/</span>
+            <span className="text-white">КАТАЛОГ</span>
+          </div>
+
+          <div className="space-y-6 sm:space-y-8">
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <div className="w-12 sm:w-16 h-0.5 bg-[#C8102E]"></div>
+              <p className="text-[10px] sm:text-xs tracking-[0.2em] sm:tracking-[0.25em] text-[#C8102E] font-medium uppercase">
+                ВСЕ МОДЕЛИ
+              </p>
+            </div>
+
+            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-none">
+              КАТАЛОГ
+              <br />
+              ЧАСОВ
+            </h1>
+
+            <p className="text-base sm:text-lg lg:text-xl font-normal text-white/70 max-w-2xl">
+              Откройте для себя полную коллекцию часов Orient — от классических
+              моделей до современных дайверских часов
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-8 sm:py-12 lg:py-16">
+        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
+          {/* Filters Sidebar - Desktop */}
+          <aside className="hidden lg:block w-80 flex-shrink-0">
+            <div className="sticky top-32">
+              <FilterSidebar />
+            </div>
+          </aside>
+
+          {/* Main Content */}
+          <div className="flex-1 min-w-0">
+            {/* Toolbar */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 sm:mb-12 pb-4 sm:pb-6 border-b border-black/10">
+              <div className="flex items-center space-x-4 sm:space-x-6 w-full sm:w-auto">
+                <button onClick={() => setShowFilters(true)} className="lg:hidden flex items-center space-x-2 border-2 border-black px-4 sm:px-6 py-2 sm:py-3 hover:bg-black hover:text-white transition-all duration-500 flex-1 sm:flex-initial justify-center">
+                  <SlidersHorizontalIcon className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2} />
+                  <span className="text-xs sm:text-sm tracking-[0.15em] font-medium uppercase">
+                    Фильтры
+                  </span>
+                </button>
+
+                <div className="hidden sm:flex items-center space-x-3">
+                  <p className="text-sm font-medium text-black">
+                    {pagination.total} моделей
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3 sm:space-x-4 w-full sm:w-auto">
+                <div className="hidden md:flex items-center border border-black/20">
+                  <button onClick={() => setViewMode('grid')} className={`p-3 transition-colors ${viewMode === 'grid' ? 'bg-black text-white' : 'hover:bg-gray-50'}`} aria-label="Сетка">
+                    <GridIcon className="w-5 h-5" strokeWidth={2} />
+                  </button>
+                  <button onClick={() => setViewMode('list')} className={`p-3 transition-colors ${viewMode === 'list' ? 'bg-black text-white' : 'hover:bg-gray-50'}`} aria-label="Список">
+                    <ListIcon className="w-5 h-5" strokeWidth={2} />
+                  </button>
+                </div>
+
+                <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="text-xs sm:text-sm tracking-[0.1em] font-medium border-2 border-black px-3 sm:px-6 py-2 sm:py-3 focus:outline-none focus:border-[#C8102E] bg-white cursor-pointer uppercase flex-1 sm:flex-initial">
+                  <option value="popular">Популярные</option>
+                  <option value="price-asc">Цена ↑</option>
+                  <option value="price-desc">Цена ↓</option>
+                  <option value="newest">Новинки</option>
+                  <option value="name">А-Я</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Active Filters */}
+            {activeFilters.length > 0 && <div className="flex flex-wrap gap-2 sm:gap-3 mb-6 sm:mb-8">
+                {activeFilters.map(([key, value]) => <button key={key} onClick={() => removeFilter(key)} className="flex items-center space-x-2 bg-black text-white px-3 sm:px-4 py-1.5 sm:py-2 text-[10px] sm:text-xs tracking-[0.15em] font-medium hover:bg-[#C8102E] transition-colors">
+                    <span className="uppercase">
+                      {key === 'collection' ? value : key === 'minPrice' ? `От ${value}${currency.symbol}` : key === 'maxPrice' ? `До ${value}${currency.symbol}` : value}
+                    </span>
+                    <XIcon className="w-3 h-3" strokeWidth={2} />
+                  </button>)}
+                <button onClick={clearFilters} className="text-[10px] sm:text-xs tracking-[0.15em] font-medium text-[#C8102E] hover:underline uppercase">
+                  Очистить все
+                </button>
+              </div>}
+
+            {/* Products Grid */}
+            {loading ? <div className="flex items-center justify-center py-20">
+                <div className="w-12 h-12 border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin"></div>
+              </div> : products.length === 0 ? <div className="text-center py-20">
+                <p className="text-xl text-black/60 mb-4">Товары не найдены</p>
+                <button onClick={clearFilters} className="text-[#C8102E] hover:underline font-medium">
+                  Сбросить фильтры
+                </button>
+              </div> : <>
+                <div className={`grid gap-6 sm:gap-8 lg:gap-12 ${viewMode === 'grid' ? 'grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+                  {/* Рендерим products напрямую с сервера */}
+                  {products.map((product, index) => <ProductCard key={product.id} {...product} index={index} />)}
+                </div>
+
+                {/* Pagination */}
+                {pagination.totalPages > 1 && <div className="mt-12 sm:mt-20 flex flex-col items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      {Array.from({
+                  length: pagination.totalPages
+                }, (_, i) => i + 1).map(page => <button key={page} onClick={() => handlePageChange(page)} className={`px-4 py-2 border-2 transition-all ${pagination.page === page ? 'bg-[#C8102E] text-white border-[#C8102E]' : 'border-black/20 hover:border-black'}`}>
+                          {page}
+                        </button>)}
+                    </div>
+                    <p className="text-xs sm:text-sm text-black/60">
+                      Показано {products.length} из {pagination.total}{' '}
+                      моделей
+                    </p>
+                  </div>}
+              </>}
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Filter Drawer */}
+      {showFilters && <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowFilters(false)}></div>
+          <div className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-white overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-black/10 px-6 sm:px-8 py-4 sm:py-6 flex items-center justify-between z-10">
+              <h2 className="text-lg sm:text-xl font-bold tracking-tight uppercase">
+                Фильтры
+              </h2>
+              <button onClick={() => setShowFilters(false)} className="p-2 hover:bg-gray-100 transition-colors">
+                <XIcon className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2} />
+              </button>
+            </div>
+            <div className="p-6 sm:p-8">
+              <FilterSidebar />
+            </div>
+            <div className="sticky bottom-0 bg-white border-t border-black/10 p-6 sm:p-8">
+              <button onClick={() => setShowFilters(false)} className="w-full bg-[#C8102E] hover:bg-[#A00D24] text-white py-3 sm:py-4 text-xs sm:text-sm tracking-[0.2em] font-semibold transition-all duration-500 uppercase">
+                Закрыть
+              </button>
+            </div>
+          </div>
+        </div>}
+    </div>
+  );
+}
