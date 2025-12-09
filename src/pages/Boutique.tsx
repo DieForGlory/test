@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CalendarIcon, ClockIcon, MapPinIcon, PhoneIcon, MailIcon, ArrowRightIcon } from 'lucide-react';
 import { publicApi } from '../services/publicApi';
 import { useSettings } from '../contexts/SettingsContext';
+import { SEO } from '../components/SEO';
 
 export function Boutique() {
   const { site } = useSettings();

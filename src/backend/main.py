@@ -2,17 +2,20 @@
 Orient Watch - FastAPI Backend
 Main application entry point
 """
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 import os
 from dotenv import load_dotenv
 
+# 2. СРАЗУ загружаем переменные, ДО импорта роутов
+load_dotenv()
+
+# 3. Теперь остальные импорты (FastAPI и ваши модули)
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
+# Ваши модули (теперь они увидят переменные окружения при инициализации)
 from database import init_db
 from routes import admin, products, collections, orders, content, upload, bookings, products_export, settings, payme, promocodes
-
-# Load environment variables
-load_dotenv()
 
 # Initialize database
 init_db()
